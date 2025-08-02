@@ -58,7 +58,7 @@ public class loopsController : MonoBehaviour
             quarterLoops = 0;
             timerSeconds = Mathf.Abs(targetLoops) * 12 + Random.Range(-Mathf.Abs(targetLoops) * 5 - difficulty, (Mathf.Abs(targetLoops) * 5)/(1+difficulty*0.25f));
             turnAroundTimer = 3;
-            Player.DamagePlayer(-15, false, 0);
+            Player.DamagePlayer(-10, false, 0);
             soundProgress = 0;
             soundTimer = 0;
             Player.AwardPoints((int)Mathf.Max(timerSeconds, 0));

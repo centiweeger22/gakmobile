@@ -67,6 +67,7 @@ public class car : MonoBehaviour
             {
                 GameObject g = Instantiate(explosionParticle, transform.position + new Vector3(0, 2, 0), Quaternion.identity);
             }
+            ShakeCamera(10);
             Destroy(gameObject, 0);
         }
         hph.setHealthAmount(hp);
@@ -196,8 +197,8 @@ public class car : MonoBehaviour
         if (rb.isKinematic)
         {
             floorVelocity += new Vector2(0, moveVector.y * acceleration);
-            floorVelocity *= 0.995f;
         }
+        floorVelocity *= 1-0.1f*Mathf.Pow(0.9f,maxSpeed);
         floorVelocity.x *= 0.99f;
         if (floorVelocity.y < 0)
         {
@@ -227,12 +228,13 @@ public class car : MonoBehaviour
          }
         else { bashObject.SetActive(false);forceFieldObject.SetActive(false); }  
         floorVelocity.x += -moveVector.x * floorVelocity.y * (1 - ratio);
-        floorVelocity.y *= ratio;
+        // floorVelocity.y *= ratio;
         if (floorVelocity.magnitude > maxSpeed)
         {
             floorVelocity.Normalize();
             floorVelocity *= maxSpeed;
         }
+        Debug.Log(floorVelocity.magnitude);
         transform.rotation = transform.rotation * Quaternion.AngleAxis(rotationSpeed, Vector3.up);
         transform.position += transform.right * floorVelocity.x + transform.forward * floorVelocity.y;
         // Vector3 floorForward = Vector3.ProjectOnPlane(forward, floorNormal).normalized;
