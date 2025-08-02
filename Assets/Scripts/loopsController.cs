@@ -77,12 +77,24 @@ public class loopsController : MonoBehaviour
                 GameObject[] taggedObjects = GameObject.FindGameObjectsWithTag("Enemy");
                 lavaOscillator.enabled = false;
                 lava.transform.position = new Vector3(0, -100, 0);
+                Player.DamagePlayer(-20, false, 0);
                 // Iterate through the found objects and do something with them
                 if (taggedObjects.Length > 0)
                 {
                     foreach (GameObject obj in taggedObjects)
                     {
-                        Destroy(obj);
+                        LandMine t;
+                        if (obj.TryGetComponent(out t))
+                        {
+                            if ((obj.transform.position+new Vector3(0,5.5f,0)).magnitude < 30)
+                            {
+                                Destroy(obj);
+                            }
+                        }
+                        else
+                        {
+                            Destroy(obj);
+                        }
                     }
                 }
                 foreach (enemySpawner spawner in spawners)

@@ -6,6 +6,7 @@ public class enemySpawner : MonoBehaviour
     [SerializeField] private Vector3 range;
     [SerializeField] private float spawnTime;
     public int difficulty;
+    [SerializeField] private int minimumDifficulty;
     private float timer;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -19,14 +20,16 @@ public class enemySpawner : MonoBehaviour
         timer -= Time.deltaTime;
         if (timer <= 0)
         {
-            Vector3 position = transform.position + new Vector3(
-            Random.Range(-range.x, range.x),
-            Random.Range(-range.y, range.y),
-            Random.Range(-range.z, range.z)
-            );
-            int randomIndex = Random.Range(0, objects.Length);
-            Instantiate(objects[randomIndex], position, Quaternion.identity);
-            timer = spawnTime;
+            if (minimumDifficulty <= difficulty)
+            {
+                Vector3 position = transform.position + new Vector3(
+                Random.Range(-range.x, range.x),
+                Random.Range(-range.y, range.y),
+                Random.Range(-range.z, range.z));
+                int randomIndex = Random.Range(0, objects.Length);
+                Instantiate(objects[randomIndex], position, Quaternion.identity);
+                timer = spawnTime;
+            }
         }
     }
 }

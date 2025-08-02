@@ -35,9 +35,12 @@ public class annoyingBall : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        if ((playerObject.transform.position - transform.position).magnitude < distance)
+        if (playerObject != null)
         {
-            rb.AddForce(Vector3.Scale((playerObject.transform.position - transform.position).normalized, new Vector3(1, 0, 1)) * acceleration);
+            if ((playerObject.transform.position - transform.position).magnitude < distance)
+            {
+                rb.AddForce(Vector3.Scale((playerObject.transform.position - transform.position).normalized, new Vector3(1, 0, 1)) * acceleration);
+            }
         }
     }
     void OnCollisionEnter(Collision collision)
