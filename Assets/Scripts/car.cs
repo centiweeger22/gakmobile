@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -13,6 +14,7 @@ public class car : MonoBehaviour
     public Vector2 floorVelocity;
     [SerializeField] private float rotationSpeed;
     [SerializeField] private float hp;
+    [SerializeField] private Vector3 targetCarSize;
     [SerializeField] private GameObject carObject;
     [SerializeField] private GameObject[] wheels;
     [SerializeField] private GameObject explosionPrefab;
@@ -21,6 +23,7 @@ public class car : MonoBehaviour
     [SerializeField] private loopsController loops;
     [SerializeField] private speedLinesSpawner speedLineSpawner;
     public Portal playerPortal;
+    public bool inPortal;
     Vector3 currentVector;
     private float clipTimer;
     private Vector3 lastPos;
@@ -30,11 +33,15 @@ public class car : MonoBehaviour
     [SerializeField] private GameObject forceFieldObject;
     [SerializeField] private GameObject sparksObject;
     [SerializeField] private TMP_Text pointsCounter;
+    [SerializeField] private TMP_Text portalPrompt;
     [SerializeField] private int points;
     [SerializeField] private gameManager gm;
     public float controlBlockTimer;
     private float fov;
+    public float cancelTime;
     private cameraShake shake;
+    private bool pb;
+    private bool ppb;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -46,6 +53,14 @@ public class car : MonoBehaviour
     }
     void Update()
     {
+        ppb = pb;
+        pb = playerInput.actions["Pause"].ReadValue<float>() == 1;
+        if (pb & !ppb)
+        {
+            gm.pauseGame = !gm.pauseGame;
+        }
+        carObject.transform.localScale = Vector3.Lerp(carObject.transform.localScale,targetCarSize,Time.deltaTime*7f);
+        cancelTime -= Time.deltaTime;
         gm.playerPoints = points;
         controlBlockTimer -= Time.deltaTime;
         clipTimer -= Time.deltaTime;
@@ -71,7 +86,7 @@ public class car : MonoBehaviour
             Destroy(gameObject, 0);
         }
         hph.setHealthAmount(hp);
-        if (transform.position.magnitude > 300)
+        if (transform.position.magnitude > 300 && transform.position.y < 1000)
         {
             rb.linearVelocity = Vector3.zero;
             transform.position = new Vector3(0, 0, 80);
@@ -82,10 +97,20 @@ public class car : MonoBehaviour
         cameraObject.GetComponent<Camera>().fieldOfView = fov;
         speedLineSpawner.movementSpeed = floorVelocity.magnitude;
         pointsCounter.text = points.ToString() + "pts";
+        if (floorVelocity.y > 1)
+        {
+            targetCarSize.y *= Mathf.Pow(0.4f, Time.deltaTime);
+            targetCarSize.z *= Mathf.Pow(1.6f,Time.deltaTime);
+        }
+        targetCarSize = Vector3.Lerp(targetCarSize, Vector3.one,Time.deltaTime*4f);
     }
     // Update is called once per frame
     void FixedUpdate()
     {
+        if (rb.useGravity && Vector3.Scale(rb.position, new Vector3(1, 0, 1)).magnitude > 120)
+        {
+            rb.position -= Vector3.Scale(rb.position.normalized, new Vector3(1, 0, 1)) * 0.5f;
+        }
         rb.AddForce(new Vector3(0, -30, 0));
         Vector2 moveVector = Vector2.zero;  
         if (controlBlockTimer < 0)
@@ -94,15 +119,28 @@ public class car : MonoBehaviour
         }
         bool brakeDrift = playerInput.actions["Jump"].ReadValue<float>() == 1;
         bool lookBack = playerInput.actions["Look Back"].ReadValue<float>() == 1;
-        if (brakeDrift && playerPortal != null)
+        portalPrompt.enabled = false;
+        if (playerPortal != null)
         {
-            loops.ResumeGameplay();
-            points += playerPortal.scoreBonus;
-            hp += playerPortal.healthBonus;
-            maxSpeed += playerPortal.speedBonus;
-            playerPortal = null;
+            portalPrompt.enabled = true;
+            if (brakeDrift)
+            {
+                loops.ResumeGameplay();
+                points += playerPortal.scoreBonus;
+                hp += playerPortal.healthBonus;
+                maxSpeed += playerPortal.speedBonus;
+                playerPortal = null;
+            }
+            if (lookBack)
+            {
+                cancelTime = 1.25f;
+                playerPortal = null;
+            }
         }
-        if (lookBack)
+        loops.inPortal = inPortal;
+        inPortal = false;
+
+        if (lookBack && cancelTime < 0)
         {
             cameraPivot.transform.localEulerAngles = new Vector3(0, 180, 0);
         }
@@ -125,6 +163,9 @@ public class car : MonoBehaviour
                         if (rb.linearVelocity.magnitude > 35)
                         {
                             ShakeCamera(10);
+                            targetCarSize.y *= 0.01f;
+                            targetCarSize.x *= 2f;
+                            targetCarSize.z *= 2f;
                         }
                     }
                     Quaternion targetRotation = Quaternion.FromToRotation(transform.up, surfaceNormal) * transform.rotation;
@@ -152,7 +193,8 @@ public class car : MonoBehaviour
                     rb.AddForce(1000 * (Vector3.up * floorVelocity.y));
                     rb.AddForce(-1 * Vector3.Scale(transform.position, new Vector3(1, 0, 1)));
                     rb.linearVelocity = Vector3.Scale(rb.linearVelocity, new Vector3(0, 2, 0));
-                    rb.AddTorque(new Vector3(0, 0, 1000));
+                    // rb.AddTorque(Quaternion.AngleAxis(1000f,transform.up).eulerAngles);
+                    rb.AddTorque(rb.transform.up * 39f * Mathf.Sign(rotationSpeed), ForceMode.Impulse);
                     floorVelocity = new Vector2(0, 0);
                 }
             }
@@ -160,6 +202,10 @@ public class car : MonoBehaviour
             {
                 rb.linearVelocity = Vector3.Scale(rb.linearVelocity, new Vector3(0.15f, 1, 0.15f));
                 rb.AddForce(-2f * Vector3.Scale(transform.position.normalized, new Vector3(1, 0, 1)));
+            }
+            if (Physics.Raycast(transform.position, Vector3.down, out hit, 2) && Vector3.Dot(Vector3.up,transform.up) < 0.3)
+            {
+                transform.eulerAngles = new Vector3(0, transform.eulerAngles.y, 0);
             }
             // else
             // {
@@ -234,7 +280,7 @@ public class car : MonoBehaviour
             floorVelocity.Normalize();
             floorVelocity *= maxSpeed;
         }
-        Debug.Log(floorVelocity.magnitude);
+        // Debug.Log(floorVelocity.magnitude);
         transform.rotation = transform.rotation * Quaternion.AngleAxis(rotationSpeed, Vector3.up);
         transform.position += transform.right * floorVelocity.x + transform.forward * floorVelocity.y;
         // Vector3 floorForward = Vector3.ProjectOnPlane(forward, floorNormal).normalized;
@@ -244,7 +290,7 @@ public class car : MonoBehaviour
             wheels[i].transform.localRotation = Quaternion.Slerp(wheels[i].transform.localRotation, Quaternion.AngleAxis(moveVector.x * 50, Vector3.up) * Quaternion.AngleAxis(90f, Vector3.forward), 0.05f);
         }
     }
-    public void DamagePlayer(float value, bool explode,float shake)
+    public void DamagePlayer(float value, bool explode, float shake)
     {
         hp -= value;
         ShakeCamera(shake);
@@ -253,6 +299,7 @@ public class car : MonoBehaviour
             GameObject g = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
             g.GetComponent<explodeOnContact>().hitPlayer = false;
         }
+        targetCarSize *= Mathf.Pow(0.999f,value);
     }
     public void AwardPoints(int value)
     {

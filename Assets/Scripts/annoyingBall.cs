@@ -10,12 +10,17 @@ public class annoyingBall : MonoBehaviour
     private GameObject myDeathParticle;
     [SerializeField] private GameObject deathParticle;
     [SerializeField] private int explosionCount;
+    [SerializeField] private AudioClip[] sounds;
+    private AudioSource source;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         playerObject = GameObject.Find("Player");
+        source = GetComponent<AudioSource>();
         rb = GetComponent<Rigidbody>();
         Destroy(gameObject, 15f);
+        source.clip = sounds[0];
+        source.Play();
     }
     void Update()
     {
@@ -48,7 +53,8 @@ public class annoyingBall : MonoBehaviour
         if (collision.gameObject.tag == "Player")
         {
             car playerCar = collision.gameObject.GetComponent<car>();
-            playerCar.DamagePlayer(10,true,15);
+            playerCar.DamagePlayer(10, true, 15);
+            source.PlayOneShot(sounds[1],5);
         }
     }
 }
