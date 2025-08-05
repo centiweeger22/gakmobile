@@ -158,6 +158,7 @@ public class loopsController : MonoBehaviour
                 untilBonus = 5;
                 musicSource.clip = music[1];
                 musicSource.Play();
+                musicSource.PlayOneShot(sounds[15],0.4f);
             }
             else
             {
